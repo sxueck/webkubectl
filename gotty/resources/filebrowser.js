@@ -2,7 +2,7 @@ let App = angular.module('FileBrowserApp', []);
 
 App.controller('FileBrowserCtrl', function ($scope, $http, $log) {
     
-    $scope.currentPath = '/tmp';
+    $scope.currentPath = '/nonexistent';
     $scope.pathParts = [];
     $scope.files = [];
     $scope.loading = false;
