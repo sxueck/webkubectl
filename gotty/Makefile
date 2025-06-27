@@ -6,7 +6,7 @@ gotty: main.go server/*.go webtty/*.go backend/*.go cache/token/*.go Makefile
 	go build ${BUILD_OPTIONS}
 
 .PHONY: asset
-asset: bindata/static/js/gotty-bundle.js bindata/static/terminal.html bindata/static/index.html bindata/static/css/index.css bindata/static/css/index-lib.css bindata/static/js/index.js bindata/static/js/index-lib.js bindata/static/favicon.png bindata/static/css/terminal.css bindata/static/css/xterm.css bindata/static/css/xterm_customize.css
+asset: bindata/static/js/gotty-bundle.js bindata/static/terminal.html bindata/static/index.html bindata/static/css/index.css bindata/static/css/index-lib.css bindata/static/js/index.js bindata/static/js/index-lib.js bindata/static/favicon.png bindata/static/css/terminal.css bindata/static/css/xterm.css bindata/static/css/xterm_customize.css bindata/static/filebrowser.html bindata/static/js/filebrowser.js bindata/static/css/filebrowser.css
 	go-bindata -prefix bindata -pkg server -ignore=\\.gitkeep -o server/asset.go bindata/...
 	gofmt -w server/asset.go
 
@@ -25,15 +25,20 @@ bindata/static/terminal.html: bindata/static resources/terminal.html
 bindata/static/index.html: bindata/static resources/index.html
 	cp resources/index.html bindata/static/index.html
 
+bindata/static/filebrowser.html: bindata/static resources/filebrowser.html
+	cp resources/filebrowser.html bindata/static/filebrowser.html
+
 bindata/static/favicon.png: bindata/static resources/favicon.png
 	cp resources/favicon.png bindata/static/favicon.png
 
 bindata/static/js: bindata/static
 	mkdir -p bindata/static/js
 
-
 bindata/static/js/gotty-bundle.js: bindata/static/js js/dist/gotty-bundle.js
 	cp js/dist/gotty-bundle.js bindata/static/js/gotty-bundle.js
+
+bindata/static/js/filebrowser.js: bindata/static/js resources/filebrowser.js
+	cp resources/filebrowser.js bindata/static/js/filebrowser.js
 
 bindata/static/js/index.js: bindata/static/js resources/index.js
 	cp resources/index.js bindata/static/js/index.js
@@ -49,6 +54,9 @@ bindata/static/css/terminal.css: bindata/static/css resources/terminal.css
 
 bindata/static/css/index.css: bindata/static/css resources/index.css
 	cp resources/index.css bindata/static/css/index.css
+
+bindata/static/css/filebrowser.css: bindata/static/css resources/filebrowser.css
+	cp resources/filebrowser.css bindata/static/css/filebrowser.css
 
 bindata/static/css/index-lib.css: bindata/static/css resources/index-lib.css
 	cp resources/index-lib.css bindata/static/css/index-lib.css
@@ -92,3 +100,6 @@ shasums:
 
 release:
 	ghr -c ${GIT_COMMIT} --delete --prerelease -u yudai -r gotty pre-release ${OUTPUT_DIR}/dist
+
+.PHONY: clean
+clean:

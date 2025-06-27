@@ -20,7 +20,7 @@ import (
 	"github.com/KubeOperator/webkubectl/gotty/pkg/randomstring"
 	"github.com/KubeOperator/webkubectl/gotty/webtty"
 	"github.com/NYTimes/gziphandler"
-	"github.com/elazarl/go-bindata-assetfs"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
@@ -222,6 +222,10 @@ func (server *Server) setupHandlers(ctx context.Context, cancel context.CancelFu
 	siteMux.HandleFunc(pathPrefix+"config.js", server.handleConfig)
 	siteMux.HandleFunc("/api/kube-config", server.handleKubeConfigApi)
 	siteMux.HandleFunc("/api/kube-token", server.handleKubeTokenApi)
+	siteMux.HandleFunc("/api/filebrowser/list", server.handleFileBrowserList)
+	siteMux.HandleFunc("/api/filebrowser/upload", server.handleFileBrowserUpload)
+	siteMux.HandleFunc("/api/filebrowser/download", server.handleFileBrowserDownload)
+	siteMux.HandleFunc("/filebrowser", server.handleFileBrowser)
 	if len(os.Getenv("TERMINAL_PATH")) < 1 {
 		siteMux.HandleFunc("/", server.handleMain)
 	}

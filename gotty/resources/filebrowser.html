@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>File Browser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="css/index-lib.css" rel="stylesheet" />
+    <link href="css/index.css" rel="stylesheet" />
+    <link href="css/filebrowser.css" rel="stylesheet" />
+</head>
+<body ng-app="FileBrowserApp" ng-controller="FileBrowserCtrl">
+    <div class="container-fluid">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="#" ng-click="navigateTo('/')">Root</a>
+                </li>
+                <li class="breadcrumb-item" ng-repeat="(index, part) in pathParts track by $index" 
+                    ng-class="{'active': $last}">
+                    <a href="#" ng-if="!$last" ng-click="navigateToIndex(index)">{{part}}</a>
+                    <span ng-if="$last">{{part}}</span>
+                </li>
+            </ol>
+        </nav>
+
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <h4>File Browser - {{currentPath}}</h4>
+            </div>
+            <div class="col-md-4 text-right">
+                <button class="btn btn-primary" ng-click="showUploadModal()">
+                    <i class="fa fa-upload"></i> Upload File
+                </button>
+                <button class="btn btn-secondary" ng-click="refresh()">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="alert alert-info" ng-if="loading">
+            Loading files...
+        </div>
+
+        <div class="alert alert-danger" ng-if="error">
+            {{error}}
+        </div>
+
+        <div class="table-responsive" ng-if="!loading && files.length > 0">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Size</th>
+                        <th>Modified</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-if="currentPath !== '/'">
+                        <td>
+                            <a href="#" ng-click="navigateUp()">
+                                <i class="fa fa-folder"></i> ..
+                            </a>
+                        </td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td></td>
+                    </tr>
+                    <tr ng-repeat="file in files | orderBy:'isDir':true">
+                        <td>
+                            <a href="#" ng-if="file.isDir" ng-click="navigateToFolder(file.name)">
+                                <i class="fa fa-folder"></i> {{file.name}}
+                            </a>
+                            <span ng-if="!file.isDir">
+                                <i class="fa fa-file"></i> {{file.name}}
+                            </span>
+                        </td>
+                        <td>{{file.isDir ? '-' : formatSize(file.size)}}</td>
+                        <td>{{file.modTime}}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" ng-if="!file.isDir" 
+                                    ng-click="downloadFile(file.name)">
+                                <i class="fa fa-download"></i> Download
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="alert alert-warning" ng-if="!loading && files.length === 0">
+            No files found in this directory.
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload File</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="fileInput">Select File</label>
+                        <input type="file" class="form-control-file" id="fileInput" 
+                               onchange="angular.element(this).scope().onFileSelect(this)" />
+                    </div>
+                    <div class="progress" ng-if="uploading">
+                        <div class="progress-bar" role="progressbar" style="width: {{uploadProgress}}%">
+                            {{uploadProgress}}%
+                        </div>
+                    </div>
+                    <div class="alert alert-danger" ng-if="uploadError">
+                        {{uploadError}}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" ng-click="uploadFile()" 
+                            ng-disabled="!selectedFile || uploading">Upload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/index-lib.js"></script>
+    <script src="js/filebrowser.js"></script>
+</body>
+</html> 

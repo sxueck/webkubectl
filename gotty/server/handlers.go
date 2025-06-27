@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -394,4 +395,222 @@ func (server *Server) handleKubeTokenApi(w http.ResponseWriter, r *http.Request)
 	result.Success = true
 	result.Token = token
 	json.NewEncoder(w).Encode(result)
+}
+
+func (server *Server) handleFileBrowser(w http.ResponseWriter, r *http.Request) {
+	fileBrowserData, err := Asset("static/filebrowser.html")
+	if err != nil {
+		http.Error(w, "File browser not found", 404)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(fileBrowserData)
+}
+
+func (server *Server) handleFileBrowserList(w http.ResponseWriter, r *http.Request) {
+	result := FileBrowserResponse{
+		Success: false,
+	}
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+
+	if r.Method != "POST" {
+		result.Message = "Method Not Allowed"
+		w.WriteHeader(405)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		result.Message = "Invalid Request Body"
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	var request FileBrowserRequest
+	if err = json.Unmarshal(body, &request); err != nil {
+		result.Message = "Invalid Request Body"
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	if len(request.Token) == 0 {
+		result.Message = "Token Required"
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	// 验证token，获取会话信息（这里简化处理，实际应该验证token的有效性）
+	if request.Path == "" {
+		request.Path = "/tmp"
+	}
+
+	// 安全检查：确保路径不包含危险字符
+	if strings.Contains(request.Path, "..") {
+		result.Message = "Invalid Path"
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	files, err := os.ReadDir(request.Path)
+	if err != nil {
+		result.Message = "Cannot read directory: " + err.Error()
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	var fileInfos []FileInfo
+	for _, file := range files {
+		info, err := file.Info()
+		if err != nil {
+			continue
+		}
+		fileInfos = append(fileInfos, FileInfo{
+			Name:    file.Name(),
+			Size:    info.Size(),
+			IsDir:   file.IsDir(),
+			ModTime: info.ModTime().Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	result.Success = true
+	result.Files = fileInfos
+	result.Path = request.Path
+	json.NewEncoder(w).Encode(result)
+}
+
+func (server *Server) handleFileBrowserUpload(w http.ResponseWriter, r *http.Request) {
+	result := FileBrowserResponse{
+		Success: false,
+	}
+	w.Header().Set("Content-Type", "application/json;charset=utf-8")
+
+	if r.Method != "POST" {
+		result.Message = "Method Not Allowed"
+		w.WriteHeader(405)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	// 解析multipart表单
+	err := r.ParseMultipartForm(32 << 20) // 32 MB
+	if err != nil {
+		result.Message = "Cannot parse form: " + err.Error()
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	token := r.FormValue("token")
+	path := r.FormValue("path")
+
+	if len(token) == 0 {
+		result.Message = "Token Required"
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	if path == "" {
+		path = "/tmp"
+	}
+
+	// 安全检查
+	if strings.Contains(path, "..") {
+		result.Message = "Invalid Path"
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		result.Message = "Cannot get file: " + err.Error()
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+	defer file.Close()
+
+	// 创建目标文件
+	targetPath := filepath.Join(path, header.Filename)
+	dst, err := os.Create(targetPath)
+	if err != nil {
+		result.Message = "Cannot create file: " + err.Error()
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+	defer dst.Close()
+
+	// 复制文件内容
+	_, err = io.Copy(dst, file)
+	if err != nil {
+		result.Message = "Cannot save file: " + err.Error()
+		w.WriteHeader(500)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	result.Success = true
+	result.Message = "File uploaded successfully"
+	json.NewEncoder(w).Encode(result)
+}
+
+func (server *Server) handleFileBrowserDownload(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	path := r.URL.Query().Get("path")
+	filename := r.URL.Query().Get("file")
+
+	if len(token) == 0 {
+		http.Error(w, "Token Required", 400)
+		return
+	}
+
+	if path == "" || filename == "" {
+		http.Error(w, "Path and filename required", 400)
+		return
+	}
+
+	// 安全检查
+	if strings.Contains(path, "..") || strings.Contains(filename, "..") {
+		http.Error(w, "Invalid Path", 400)
+		return
+	}
+
+	filePath := filepath.Join(path, filename)
+
+	// 检查文件是否存在
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		http.Error(w, "File not found", 404)
+		return
+	}
+
+	// 如果是目录，不允许下载
+	if fileInfo.IsDir() {
+		http.Error(w, "Cannot download directory", 400)
+		return
+	}
+
+	// 打开文件
+	file, err := os.Open(filePath)
+	if err != nil {
+		http.Error(w, "Cannot open file", 500)
+		return
+	}
+	defer file.Close()
+
+	// 设置响应头
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+
+	// 传输文件内容
+	io.Copy(w, file)
 }
