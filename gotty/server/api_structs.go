@@ -18,9 +18,9 @@ type KubeTokenRequest struct {
 }
 
 type FileBrowserRequest struct {
-	Path  string `json:"path"`
-	Name  string `json:"name,omitempty"`
-	Token string `json:"token"`
+	Path         string `json:"path"`
+	Name         string `json:"name,omitempty"`
+	SessionToken string `json:"sessionToken"`
 }
 
 type FileInfo struct {
@@ -35,4 +35,11 @@ type FileBrowserResponse struct {
 	Message string     `json:"message"`
 	Files   []FileInfo `json:"files,omitempty"`
 	Path    string     `json:"path"`
+}
+
+type SessionInfo struct {
+	SessionToken string `json:"sessionToken"`
+	WorkingDir   string `json:"workingDir"`
+	CreatedAt    int64  `json:"createdAt"`
+	LastAccess   int64  `json:"lastAccess"`
 }

@@ -5,3 +5,36 @@ html, body, #terminal {
     padding: 0%;
     margin: 0%;
 }
+
+.file-manager-button {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background: rgba(45, 45, 45, 0.9);
+    color: #ffffff;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.file-manager-button:hover {
+    background: rgba(65, 65, 65, 0.95);
+    border-color: #777;
+    transform: translateY(-1px);
+}
+
+.file-manager-button svg {
+    opacity: 0.8;
+}
+
+.file-manager-button:hover svg {
+    opacity: 1;
+}

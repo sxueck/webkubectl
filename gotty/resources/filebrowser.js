@@ -7,12 +7,12 @@ App.controller('FileBrowserCtrl', function ($scope, $http, $log) {
     $scope.files = [];
     $scope.loading = false;
     $scope.error = '';
-    $scope.token = new URLSearchParams(window.location.search).get('token');
+    $scope.sessionToken = new URLSearchParams(window.location.search).get('sessionToken');
 
     $scope.list = function (path) {
         $scope.loading = true;
         $scope.error = '';
-        $http.post('/api/filebrowser/list', { path: path, token: $scope.token })
+        $http.post('/api/filebrowser/list', { path: path, sessionToken: $scope.sessionToken })
             .then(function (response) {
                 if (response.data.success) {
                     $scope.files = response.data.files;
@@ -63,7 +63,7 @@ App.controller('FileBrowserCtrl', function ($scope, $http, $log) {
     };
     
     $scope.downloadFile = function(fileName) {
-        window.open(`/api/filebrowser/download?token=${$scope.token}&path=${$scope.currentPath}&file=${fileName}`, '_blank');
+        window.open(`/api/filebrowser/download?sessionToken=${$scope.sessionToken}&path=${$scope.currentPath}&file=${fileName}`, '_blank');
     };
 
     // Upload functionality
@@ -92,7 +92,7 @@ App.controller('FileBrowserCtrl', function ($scope, $http, $log) {
         let formData = new FormData();
         formData.append('file', $scope.selectedFile);
         formData.append('path', $scope.currentPath);
-        formData.append('token', $scope.token);
+        formData.append('sessionToken', $scope.sessionToken);
 
         $http.post('/api/filebrowser/upload', formData, {
             transformRequest: angular.identity,

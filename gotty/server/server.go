@@ -225,6 +225,7 @@ func (server *Server) setupHandlers(ctx context.Context, cancel context.CancelFu
 	siteMux.HandleFunc("/api/filebrowser/list", server.handleFileBrowserList)
 	siteMux.HandleFunc("/api/filebrowser/upload", server.handleFileBrowserUpload)
 	siteMux.HandleFunc("/api/filebrowser/download", server.handleFileBrowserDownload)
+	siteMux.HandleFunc("/api/session/info", server.handleSessionInfo)
 	siteMux.HandleFunc("/filebrowser", server.handleFileBrowser)
 	if len(os.Getenv("TERMINAL_PATH")) < 1 {
 		siteMux.HandleFunc("/", server.handleMain)

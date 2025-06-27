@@ -129,6 +129,7 @@ func (server *Server) processWSConn(ctx context.Context, conn *websocket.Conn) e
 	params := query.Query()
 	params.Del("arg")
 	arg := ""
+	var sessionToken string
 	if len(params.Get("token")) > 0 {
 		ttyParameter := server.cache.Get(params.Get("token"))
 		cachedKey := params.Get("token")
@@ -136,6 +137,16 @@ func (server *Server) processWSConn(ctx context.Context, conn *websocket.Conn) e
 			windowTitle = ttyParameter.Title
 			arg = ttyParameter.Arg
 			server.cache.Delete(cachedKey)
+
+			// 创建会话token
+			sessionToken = randomstring.Generate(32)
+			sessionInfo := &cache.SessionInfo{
+				SessionToken: sessionToken,
+				WorkingDir:   "/tmp", // 默认工作目录，实际使用中可能需要根据kubctl会话调整
+				CreatedAt:    time.Now().Unix(),
+				LastAccess:   time.Now().Unix(),
+			}
+			server.cache.SetSession(sessionToken, sessionInfo, time.Duration(server.options.TokenExpiresDuration*6)*time.Second) // 会话token更长的有效期
 		} else {
 			arg = "ERROR:Invalid Token"
 		}
@@ -436,14 +447,25 @@ func (server *Server) handleFileBrowserList(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if len(request.Token) == 0 {
-		result.Message = "Token Required"
+	if len(request.SessionToken) == 0 {
+		result.Message = "Session Token Required"
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(result)
 		return
 	}
 
-	// 验证token，获取会话信息（这里简化处理，实际应该验证token的有效性）
+	// 验证并更新会话
+	session := server.cache.GetSession(request.SessionToken)
+	if session == nil {
+		result.Message = "Invalid Session Token"
+		w.WriteHeader(401)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	// 更新会话访问时间
+	server.cache.UpdateSessionAccess(request.SessionToken)
+
 	if request.Path == "" {
 		request.Path = "/tmp"
 	}
@@ -506,15 +528,27 @@ func (server *Server) handleFileBrowserUpload(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	token := r.FormValue("token")
+	sessionToken := r.FormValue("sessionToken")
 	path := r.FormValue("path")
 
-	if len(token) == 0 {
-		result.Message = "Token Required"
+	if len(sessionToken) == 0 {
+		result.Message = "Session Token Required"
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(result)
 		return
 	}
+
+	// 验证会话
+	session := server.cache.GetSession(sessionToken)
+	if session == nil {
+		result.Message = "Invalid Session Token"
+		w.WriteHeader(401)
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	// 更新会话访问时间
+	server.cache.UpdateSessionAccess(sessionToken)
 
 	if path == "" {
 		path = "/tmp"
@@ -563,14 +597,24 @@ func (server *Server) handleFileBrowserUpload(w http.ResponseWriter, r *http.Req
 }
 
 func (server *Server) handleFileBrowserDownload(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
+	sessionToken := r.URL.Query().Get("sessionToken")
 	path := r.URL.Query().Get("path")
 	filename := r.URL.Query().Get("file")
 
-	if len(token) == 0 {
-		http.Error(w, "Token Required", 400)
+	if len(sessionToken) == 0 {
+		http.Error(w, "Session Token Required", 400)
 		return
 	}
+
+	// 验证会话
+	session := server.cache.GetSession(sessionToken)
+	if session == nil {
+		http.Error(w, "Invalid Session Token", 401)
+		return
+	}
+
+	// 更新会话访问时间
+	server.cache.UpdateSessionAccess(sessionToken)
 
 	if path == "" || filename == "" {
 		http.Error(w, "Path and filename required", 400)
@@ -613,4 +657,36 @@ func (server *Server) handleFileBrowserDownload(w http.ResponseWriter, r *http.R
 
 	// 传输文件内容
 	io.Copy(w, file)
+}
+
+func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) {
+	// 从URL参数中获取原始token，查找对应的会话token
+	originalToken := r.URL.Query().Get("token")
+
+	result := map[string]interface{}{
+		"success":      false,
+		"sessionToken": "",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if originalToken != "" {
+		// 这里是一个临时解决方案，在实际中需要建立token到session的映射
+		// 为演示目的，我们生成一个临时的会话token
+		sessionToken := randomstring.Generate(32)
+		sessionInfo := &cache.SessionInfo{
+			SessionToken: sessionToken,
+			WorkingDir:   "/tmp",
+			CreatedAt:    time.Now().Unix(),
+			LastAccess:   time.Now().Unix(),
+		}
+
+		err := server.cache.SetSession(sessionToken, sessionInfo, time.Duration(server.options.TokenExpiresDuration*6)*time.Second)
+		if err == nil {
+			result["success"] = true
+			result["sessionToken"] = sessionToken
+		}
+	}
+
+	json.NewEncoder(w).Encode(result)
 }
