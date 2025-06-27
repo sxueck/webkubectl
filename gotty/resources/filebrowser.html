@@ -4,9 +4,9 @@
     <meta charset="utf-8" />
     <title>File Browser</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="css/index-lib.css" rel="stylesheet" />
-    <link href="css/index.css" rel="stylesheet" />
-    <link href="css/filebrowser.css" rel="stylesheet" />
+    <link href="terminal/css/index-lib.css" rel="stylesheet" />
+    <link href="terminal/css/index.css" rel="stylesheet" />
+    <link href="terminal/css/filebrowser.css" rel="stylesheet" />
 </head>
 <body ng-app="FileBrowserApp" ng-controller="FileBrowserCtrl">
     <div class="container-fluid">
@@ -23,16 +23,16 @@
             </ol>
         </nav>
 
-        <div class="row mb-3">
-            <div class="col-md-8">
-                <h4>File Browser - {{currentPath}}</h4>
+        <div class="header-section">
+            <div class="header-title">
+                <h3>{{currentPath}}</h3>
             </div>
-            <div class="col-md-4 text-right">
-                <button class="btn btn-primary" ng-click="showUploadModal()">
-                    <i class="fa fa-upload"></i> Upload File
+            <div class="header-actions">
+                <button class="btn-action btn-primary" ng-click="showUploadModal()">
+                    Upload
                 </button>
-                <button class="btn btn-secondary" ng-click="refresh()">
-                    <i class="fa fa-refresh"></i> Refresh
+                <button class="btn-action btn-secondary" ng-click="refresh()">
+                    Refresh
                 </button>
             </div>
         </div>
@@ -45,47 +45,32 @@
             {{error}}
         </div>
 
-        <div class="table-responsive" ng-if="!loading && files.length > 0">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Size</th>
-                        <th>Modified</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr ng-if="currentPath !== '/'">
-                        <td>
-                            <a href="#" ng-click="navigateUp()">
-                                <i class="fa fa-folder"></i> ..
-                            </a>
-                        </td>
-                        <td>-</td>
-                        <td>-</td>
-                        <td></td>
-                    </tr>
-                    <tr ng-repeat="file in files | orderBy:'isDir':true">
-                        <td>
-                            <a href="#" ng-if="file.isDir" ng-click="navigateToFolder(file.name)">
-                                <i class="fa fa-folder"></i> {{file.name}}
-                            </a>
-                            <span ng-if="!file.isDir">
-                                <i class="fa fa-file"></i> {{file.name}}
-                            </span>
-                        </td>
-                        <td>{{file.isDir ? '-' : formatSize(file.size)}}</td>
-                        <td>{{file.modTime}}</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" ng-if="!file.isDir" 
-                                    ng-click="downloadFile(file.name)">
-                                <i class="fa fa-download"></i> Download
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="file-list" ng-if="!loading && files.length > 0">
+            <div class="file-item parent-dir" ng-if="currentPath !== '/'" ng-click="navigateUp()">
+                <div class="file-icon folder-icon"></div>
+                <div class="file-name">..</div>
+                <div class="file-size">-</div>
+                <div class="file-date">-</div>
+                <div class="file-actions"></div>
+            </div>
+            
+            <div class="file-item" ng-repeat="file in files | orderBy:'isDir':true" 
+                 ng-class="{'folder': file.isDir, 'file': !file.isDir}">
+                <div class="file-icon" ng-class="{'folder-icon': file.isDir, 'file-icon': !file.isDir}"></div>
+                <div class="file-name" ng-if="file.isDir" ng-click="navigateToFolder(file.name)">
+                    {{file.name}}
+                </div>
+                <div class="file-name" ng-if="!file.isDir">
+                    {{file.name}}
+                </div>
+                <div class="file-size">{{file.isDir ? '-' : formatSize(file.size)}}</div>
+                <div class="file-date">{{file.modTime}}</div>
+                <div class="file-actions">
+                    <button class="btn-download" ng-if="!file.isDir" ng-click="downloadFile(file.name)">
+                        Download
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="alert alert-warning" ng-if="!loading && files.length === 0">
@@ -127,7 +112,7 @@
         </div>
     </div>
 
-    <script src="js/index-lib.js"></script>
-    <script src="js/filebrowser.js"></script>
+    <script src="terminal/js/index-lib.js"></script>
+    <script src="terminal/js/filebrowser.js"></script>
 </body>
 </html> 

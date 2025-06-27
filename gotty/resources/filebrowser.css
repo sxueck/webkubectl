@@ -1,15 +1,241 @@
+/* Header Section */
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 20px;
+}
+
+.header-title h3 {
+    margin: 0;
+    color: #212529 !important;
+    font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Buttons */
+.btn-action {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+}
+
+/* Breadcrumb */
 .breadcrumb {
-    margin-top: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin: 20px 0;
+    padding: 12px 16px;
 }
 
-.table-responsive {
-    margin-top: 15px;
+.breadcrumb-item {
+    color: #495057 !important;
 }
 
-.fa {
-    margin-right: 5px;
+.breadcrumb-item a {
+    color: #007bff !important;
+    text-decoration: none;
 }
 
+.breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-item span {
+    color: #495057 !important;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d !important;
+}
+
+/* File List */
+.file-list {
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.file-item {
+    display: grid;
+    grid-template-columns: 40px 1fr 100px 150px 100px;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f3f4;
+    transition: background-color 0.2s;
+    background: #ffffff;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-item:hover {
+    background-color: #f8f9fa;
+}
+
+.file-item.parent-dir {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.file-item.folder .file-name {
+    cursor: pointer;
+    color: #007bff;
+}
+
+.file-item.folder .file-name:hover {
+    text-decoration: underline;
+}
+
+/* File Icons */
+.file-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 2px;
+    position: relative;
+}
+
+.folder-icon {
+    background: #ffc107;
+}
+
+.folder-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60%;
+    background: #ffc107;
+    border-radius: 2px 2px 0 0;
+}
+
+.file-icon:not(.folder-icon) {
+    background: #6c757d;
+}
+
+/* File Info */
+.file-name {
+    font-weight: 500;
+    color: #212529 !important;
+}
+
+.file-size, .file-date {
+    color: #6c757d !important;
+    font-size: 14px;
+}
+
+/* Download Button */
+.btn-download {
+    background: #28a745;
+    color: white !important;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-download:hover {
+    background: #1e7e34;
+}
+
+/* Loading and Empty States */
+.alert {
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 20px 0;
+}
+
+.alert-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+.alert-danger {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+/* Modal Improvements */
 .modal-body .progress {
     margin-top: 15px;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.progress-bar {
+    border-radius: 4px;
+}
+
+/* Ensure all text is visible */
+body {
+    color: #212529;
+    background: #ffffff;
+}
+
+.container {
+    background: #ffffff;
+    color: #212529;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .file-item {
+        grid-template-columns: 40px 1fr 80px;
+    }
+    
+    .file-size, .file-date {
+        display: none;
+    }
+    
+    .header-section {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
 } 

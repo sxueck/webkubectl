@@ -660,7 +660,6 @@ func (server *Server) handleFileBrowserDownload(w http.ResponseWriter, r *http.R
 }
 
 func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) {
-	// 从URL参数中获取原始token，查找对应的会话token
 	originalToken := r.URL.Query().Get("token")
 
 	result := map[string]interface{}{
@@ -671,8 +670,6 @@ func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 
 	if originalToken != "" {
-		// 这里是一个临时解决方案，在实际中需要建立token到session的映射
-		// 为演示目的，我们生成一个临时的会话token
 		sessionToken := randomstring.Generate(32)
 		sessionInfo := &cache.SessionInfo{
 			SessionToken: sessionToken,
