@@ -8,7 +8,7 @@ on:
         required: true
 
 jobs:
-  build-and-push-to-dockerhub:
+  build-and-push-to-ghcr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,7 +16,7 @@ jobs:
       - name: Prepare
         id: prepare
         run: |
-          DOCKER_IMAGE=futuretea/webkubectl
+          DOCKER_IMAGE=ghcr.io/${{ github.repository_owner }}/webkubectl
           DOCKER_PLATFORMS=linux/amd64,linux/arm64
           TAG_NAME=${{ github.event.inputs.dockerImageTag }}
           DOCKER_IMAGE_TAGS="--tag ${DOCKER_IMAGE}:${TAG_NAME} --tag ${DOCKER_IMAGE}:latest"
@@ -34,11 +34,12 @@ jobs:
       - name: Docker Buildx (build)
         run: |
           docker buildx build --output "type=image,push=false" ${{ steps.prepare.outputs.buildx_args }}
-      - name: Login to DockerHub
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Docker Buildx (push)
         run: |
           docker buildx build --output "type=image,push=true" ${{ steps.prepare.outputs.buildx_args }}
