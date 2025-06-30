@@ -142,7 +142,7 @@ func (server *Server) processWSConn(ctx context.Context, conn *websocket.Conn) e
 			sessionToken = randomstring.Generate(32)
 			sessionInfo := &cache.SessionInfo{
 				SessionToken: sessionToken,
-				WorkingDir:   "/tmp", // 默认工作目录，实际使用中可能需要根据kubctl会话调整
+				WorkingDir:   "/nonexistent", // kubectl会话的home目录
 				CreatedAt:    time.Now().Unix(),
 				LastAccess:   time.Now().Unix(),
 			}
@@ -467,7 +467,7 @@ func (server *Server) handleFileBrowserList(w http.ResponseWriter, r *http.Reque
 	server.cache.UpdateSessionAccess(request.SessionToken)
 
 	if request.Path == "" {
-		request.Path = "/tmp"
+		request.Path = session.WorkingDir
 	}
 
 	// 安全检查：确保路径不包含危险字符
@@ -551,7 +551,7 @@ func (server *Server) handleFileBrowserUpload(w http.ResponseWriter, r *http.Req
 	server.cache.UpdateSessionAccess(sessionToken)
 
 	if path == "" {
-		path = "/tmp"
+		path = session.WorkingDir
 	}
 
 	// 安全检查
@@ -661,6 +661,7 @@ func (server *Server) handleFileBrowserDownload(w http.ResponseWriter, r *http.R
 
 func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) {
 	originalToken := r.URL.Query().Get("token")
+	sessionToken := r.URL.Query().Get("sessionToken")
 
 	result := map[string]interface{}{
 		"success":      false,
@@ -669,11 +670,24 @@ func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 
+	// 如果提供了sessionToken，返回会话信息
+	if sessionToken != "" {
+		session := server.cache.GetSession(sessionToken)
+		if session != nil {
+			result["success"] = true
+			result["sessionToken"] = sessionToken
+			result["workingDir"] = session.WorkingDir
+		}
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
+	// 如果提供了originalToken，创建新会话
 	if originalToken != "" {
 		sessionToken := randomstring.Generate(32)
 		sessionInfo := &cache.SessionInfo{
 			SessionToken: sessionToken,
-			WorkingDir:   "/tmp",
+			WorkingDir:   "/nonexistent",
 			CreatedAt:    time.Now().Unix(),
 			LastAccess:   time.Now().Unix(),
 		}
@@ -682,6 +696,7 @@ func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) 
 		if err == nil {
 			result["success"] = true
 			result["sessionToken"] = sessionToken
+			result["workingDir"] = sessionInfo.WorkingDir
 		}
 	}
 
