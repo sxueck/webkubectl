@@ -10,7 +10,13 @@ arg2=$2
 
 mkdir -p /nonexistent
 mount -t tmpfs -o size=${SESSION_STORAGE_SIZE} tmpfs /nonexistent
+mkdir -p /shared
+chmod 777 /shared
 cd /nonexistent
+mkdir -p shared
+mount --bind /shared shared
+chown nobody:nogroup shared
+chmod 755 shared
 cp /root/.bashrc ./
 cp /etc/vim/vimrc.local .vimrc
 echo 'source /opt/kubectl-aliases/.kubectl_aliases' >> .bashrc
@@ -44,6 +50,7 @@ if [ ${KUBECTL_INSECURE_SKIP_TLS_VERIFY} == "true" ];then
 fi
 
 chown -R nobody:nogroup .kube
+chown -R nobody:nogroup /shared
 
 export TMPDIR=/nonexistent
 

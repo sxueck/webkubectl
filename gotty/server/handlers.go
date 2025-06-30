@@ -142,7 +142,7 @@ func (server *Server) processWSConn(ctx context.Context, conn *websocket.Conn) e
 			sessionToken = randomstring.Generate(32)
 			sessionInfo := &cache.SessionInfo{
 				SessionToken: sessionToken,
-				WorkingDir:   "/nonexistent", // kubectl会话的home目录
+				WorkingDir:   "/nonexistent/shared",
 				CreatedAt:    time.Now().Unix(),
 				LastAccess:   time.Now().Unix(),
 			}
@@ -467,18 +467,18 @@ func (server *Server) handleFileBrowserList(w http.ResponseWriter, r *http.Reque
 	server.cache.UpdateSessionAccess(request.SessionToken)
 
 	if request.Path == "" {
-		request.Path = session.WorkingDir
+		request.Path = "/nonexistent/shared"
 	}
 
-	// 安全检查：确保路径不包含危险字符
-	if strings.Contains(request.Path, "..") {
-		result.Message = "Invalid Path"
-		w.WriteHeader(400)
+	cleanPath := filepath.Clean(request.Path)
+	if !strings.HasPrefix(cleanPath, "/nonexistent/shared") {
+		result.Message = "Access denied"
+		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(result)
 		return
 	}
 
-	files, err := os.ReadDir(request.Path)
+	files, err := os.ReadDir(cleanPath)
 	if err != nil {
 		result.Message = "Cannot read directory: " + err.Error()
 		w.WriteHeader(500)
@@ -502,7 +502,7 @@ func (server *Server) handleFileBrowserList(w http.ResponseWriter, r *http.Reque
 
 	result.Success = true
 	result.Files = fileInfos
-	result.Path = request.Path
+	result.Path = cleanPath
 	json.NewEncoder(w).Encode(result)
 }
 
@@ -551,13 +551,13 @@ func (server *Server) handleFileBrowserUpload(w http.ResponseWriter, r *http.Req
 	server.cache.UpdateSessionAccess(sessionToken)
 
 	if path == "" {
-		path = session.WorkingDir
+		path = "/nonexistent/shared"
 	}
 
-	// 安全检查
-	if strings.Contains(path, "..") {
-		result.Message = "Invalid Path"
-		w.WriteHeader(400)
+	cleanPath := filepath.Clean(path)
+	if !strings.HasPrefix(cleanPath, "/nonexistent/shared") {
+		result.Message = "Access denied"
+		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(result)
 		return
 	}
@@ -572,7 +572,7 @@ func (server *Server) handleFileBrowserUpload(w http.ResponseWriter, r *http.Req
 	defer file.Close()
 
 	// 创建目标文件
-	targetPath := filepath.Join(path, header.Filename)
+	targetPath := filepath.Join(cleanPath, header.Filename)
 	dst, err := os.Create(targetPath)
 	if err != nil {
 		result.Message = "Cannot create file: " + err.Error()
@@ -621,13 +621,13 @@ func (server *Server) handleFileBrowserDownload(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// 安全检查
-	if strings.Contains(path, "..") || strings.Contains(filename, "..") {
-		http.Error(w, "Invalid Path", 400)
+	cleanPath := filepath.Clean(path)
+	if !strings.HasPrefix(cleanPath, "/nonexistent/shared") {
+		http.Error(w, "Access denied", 403)
 		return
 	}
 
-	filePath := filepath.Join(path, filename)
+	filePath := filepath.Join(cleanPath, filename)
 
 	// 检查文件是否存在
 	fileInfo, err := os.Stat(filePath)
@@ -661,7 +661,6 @@ func (server *Server) handleFileBrowserDownload(w http.ResponseWriter, r *http.R
 
 func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) {
 	originalToken := r.URL.Query().Get("token")
-	sessionToken := r.URL.Query().Get("sessionToken")
 
 	result := map[string]interface{}{
 		"success":      false,
@@ -670,24 +669,11 @@ func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 
-	// 如果提供了sessionToken，返回会话信息
-	if sessionToken != "" {
-		session := server.cache.GetSession(sessionToken)
-		if session != nil {
-			result["success"] = true
-			result["sessionToken"] = sessionToken
-			result["workingDir"] = session.WorkingDir
-		}
-		json.NewEncoder(w).Encode(result)
-		return
-	}
-
-	// 如果提供了originalToken，创建新会话
 	if originalToken != "" {
 		sessionToken := randomstring.Generate(32)
 		sessionInfo := &cache.SessionInfo{
 			SessionToken: sessionToken,
-			WorkingDir:   "/nonexistent",
+			WorkingDir:   "/nonexistent/shared",
 			CreatedAt:    time.Now().Unix(),
 			LastAccess:   time.Now().Unix(),
 		}
@@ -696,7 +682,6 @@ func (server *Server) handleSessionInfo(w http.ResponseWriter, r *http.Request) 
 		if err == nil {
 			result["success"] = true
 			result["sessionToken"] = sessionToken
-			result["workingDir"] = sessionInfo.WorkingDir
 		}
 	}
 

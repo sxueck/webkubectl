@@ -2,13 +2,12 @@ let App = angular.module('FileBrowserApp', []);
 
 App.controller('FileBrowserCtrl', function ($scope, $http, $log) {
     
-    $scope.currentPath = '';
+    $scope.currentPath = '/nonexistent/shared';
     $scope.pathParts = [];
     $scope.files = [];
     $scope.loading = false;
     $scope.error = '';
     $scope.sessionToken = new URLSearchParams(window.location.search).get('sessionToken');
-    $scope.workingDir = '/nonexistent'; // 默认值
 
     $scope.list = function (path) {
         $scope.loading = true;
@@ -123,31 +122,6 @@ App.controller('FileBrowserCtrl', function ($scope, $http, $log) {
     };
 
 
-    // Get working directory and initial load
-    $scope.initializeWorkingDir = function() {
-        if ($scope.sessionToken) {
-            $http.get('/api/session/info?sessionToken=' + $scope.sessionToken)
-                .then(function(response) {
-                    if (response.data.success && response.data.workingDir) {
-                        $scope.workingDir = response.data.workingDir;
-                        $scope.currentPath = $scope.workingDir;
-                        $scope.list($scope.currentPath);
-                    } else {
-                        $scope.error = 'Failed to get session info';
-                        $scope.currentPath = $scope.workingDir;
-                        $scope.list($scope.currentPath);
-                    }
-                }, function(response) {
-                    $scope.error = 'Failed to connect to session';
-                    $scope.currentPath = $scope.workingDir;
-                    $scope.list($scope.currentPath);
-                });
-        } else {
-            $scope.currentPath = $scope.workingDir;
-            $scope.list($scope.currentPath);
-        }
-    };
-
     // Initial load
-    $scope.initializeWorkingDir();
+    $scope.list($scope.currentPath);
 }); 

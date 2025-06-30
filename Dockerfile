@@ -48,8 +48,13 @@ COPY vimrc.local /etc/vim
 COPY start-webkubectl.sh /opt/webkubectl
 COPY start-session.sh /opt/webkubectl
 COPY init-kubectl.sh /opt/webkubectl
+COPY cleanup-shared.sh /opt/webkubectl
 RUN chmod -R 700 /opt/webkubectl /usr/bin/gotty
 
+RUN echo "0 2 * * * /opt/webkubectl/cleanup-shared.sh" > /var/spool/cron/crontabs/root && \
+    chmod 600 /var/spool/cron/crontabs/root && \
+    mkdir -p /var/log && \
+    touch /var/log/cron.log
 
 ENV SESSION_STORAGE_SIZE=10M
 ENV WELCOME_BANNER="Welcome to Web Kubectl, try kubectl --help."
